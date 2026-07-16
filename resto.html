@@ -8,7 +8,7 @@
             background-color: #2c3e50;
             color: #ecf0f1;
             padding: 20px;
-            max-width: 800px;
+            max-width: 850px;
             margin: auto;
         }
         h1 {
@@ -29,7 +29,6 @@
             padding-bottom: 5px;
             color: #f39c12;
         }
-        /* Form Styling */
         .form-group {
             margin-bottom: 15px;
         }
@@ -61,6 +60,30 @@
         .btn-resto:hover {
             background-color: #219653;
         }
+        
+        /* CSS Menampilkan Daftar Menu Milik Resto */
+        .my-menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #1a252f;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+        }
+        .btn-delete {
+            background-color: #e74c3c;
+            color: white;
+            width: auto;
+            padding: 5px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .btn-delete:hover {
+            background-color: #c0392b;
+        }
+
         /* Order Cards */
         .order-card {
             background-color: #1a252f;
@@ -74,6 +97,60 @@
             justify-content: space-between;
             margin-bottom: 5px;
             font-size: 14px;
+        }
+        .order-notes-box {
+            background-color: #2c3e50;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 13px;
+            border-left: 3px solid #e67e22;
+            margin: 10px 0;
+            color: #bdc3c7;
+        }
+        .action-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn-action {
+            padding: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-print {
+            background-color: #3498db;
+            color: white;
+        }
+        .btn-print:hover {
+            background-color: #2980b9;
+        }
+        .btn-done {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .btn-done:hover {
+            background-color: #27ae60;
+        }
+
+        /* Area Cetak Struk Kasir Khusus (Hanya Terlihat Saat di-Print) */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printArea, #printArea * {
+                visibility: visible;
+            }
+            #printArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                color: black;
+                background-color: white;
+                font-family: 'Courier New', Courier, monospace;
+                padding: 10px;
+            }
         }
     </style>
 </head>
@@ -99,7 +176,15 @@
         <button class="btn-resto" onclick="tambahMenuDatabase()">+ Simpan Menu ke Database</button>
     </div>
 
-    <!-- 2. Pantau Orderan Masuk Real-Time -->
+    <!-- 2. Sistem Melihat Menu Sendiri & Hapus Menu -->
+    <div class="container">
+        <h2>Daftar Menu Aktif</h2>
+        <div id="my-menu-list">
+            <p style="text-align: center; color: #bdc3c7;">Memuat daftar menu...</p>
+        </div>
+    </div>
+
+    <!-- 3. Pantau Orderan Masuk Real-Time -->
     <div class="container">
         <h2>Pesanan Masuk (Real-time)</h2>
         <div id="orders-list">
@@ -107,20 +192,22 @@
         </div>
     </div>
 
-    <!-- Import SDK Firebase SDK v9 -->
+    <!-- Area Khusus Tersembunyi untuk Struk Kasir Thermal -->
+    <div id="printArea"></div>
+
+    <!-- Import SDK Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-        // GANTI INI DENGAN CONFIG FIREBASE ANDA SENDIRI
         const firebaseConfig = {
-    	    apiKey: "AIzaSyDRJtM8QEgUSa42L3dLUf1fZ6AQzKdrOqY",
-   	    authDomain: "warung-nusantara-a5ae2.firebaseapp.com",
-    	    projectId: "warung-nusantara-a5ae2",
-    	    storageBucket: "warung-nusantara-a5ae2.firebasestorage.app",
-    	    messagingSenderId: "776992995167",
-    	    appId: "1:776992995167:web:ad8850438f940bfe7828ea",
-    	    measurementId: "G-1ZYH5BJDM2"
+            apiKey: "AIzaSyDRJtM8QEgUSa42L3dLUf1fZ6AQzKdrOqY",
+            authDomain: "warung-nusantara-a5ae2.firebaseapp.com",
+            projectId: "warung-nusantara-a5ae2",
+            storageBucket: "warung-nusantara-a5ae2.firebasestorage.app",
+            messagingSenderId: "776992995167",
+            appId: "1:776992995167:web:ad8850438f940bfe7828ea",
+            measurementId: "G-1ZYH5BJDM2"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -143,8 +230,7 @@
                     harga: harga,
                     img: img || "https://images.unsplash.com/photo-1529042410759-befb1204b468?w=200"
                 });
-                alert("Menu baru berhasil disimpan! Sekarang pembeli bisa melihat menu ini.");
-                // Reset form input
+                alert("Menu baru berhasil disimpan!");
                 document.getElementById("menu-name").value = "";
                 document.getElementById("menu-price").value = "";
                 document.getElementById("menu-img").value = "";
@@ -154,21 +240,59 @@
             }
         }
 
-        // 2. Fungsi Mendengar (Listen) Pesanan yang Masuk secara REAL-TIME
-        const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
+        // 2. Real-Time Monitor Menu Restoran Sendiri & Sistem Hapus Menu
+        onSnapshot(collection(db, "menu"), (querySnapshot) => {
+            const menuListContainer = document.getElementById("my-menu-list");
+            if (querySnapshot.empty) {
+                menuListContainer.innerHTML = `<p style="text-align: center; color: #bdc3c7;">Belum ada menu di database.</p>`;
+                return;
+            }
+            let menuHtml = "";
+            querySnapshot.forEach((documentObj) => {
+                const data = documentObj.data();
+                const idMenu = documentObj.id;
+                menuHtml += `
+                    <div class="my-menu-item">
+                        <span><strong>${data.nama}</strong> - Rp ${Number(data.harga).toLocaleString('id-ID')}</span>
+                        <button class="btn-delete" onclick="hapusMenu('${idMenu}')">Hapus</button>
+                    </div>
+                `;
+            });
+            menuListContainer.innerHTML = menuHtml;
+        });
+
+        // Fungsi Hapus Menu dari Firestore
+        window.hapusMenu = async function(id) {
+            const konfirmasi = confirm("Yakin ingin menghapus menu ini dari daftar?");
+            if (konfirmasi) {
+                try {
+                    await deleteDoc(doc(db, "menu", id));
+                    alert("Menu berhasil dihapus!");
+                } catch (error) {
+                    console.error("Gagal menghapus: ", error);
+                }
+            }
+        }
+
+        // 3. Memantau Pesanan Aktif secara Real-time (Hanya menampilkan yang berstatus "Menunggu Diproses")
+        const q = query(
+            collection(db, "orders"), 
+            where("status", "==", "Menunggu Diproses"),
+            orderBy("timestamp", "desc")
+        );
+
         onSnapshot(q, (querySnapshot) => {
             const ordersListContainer = document.getElementById("orders-list");
             if (querySnapshot.empty) {
-                ordersListContainer.innerHTML = `<p style="text-align: center; color: #bdc3c7;">Belum ada pesanan yang masuk.</p>`;
+                ordersListContainer.innerHTML = `<p style="text-align: center; color: #bdc3c7;">Belum ada pesanan aktif yang masuk saat ini.</p>`;
                 return;
             }
 
             let ordersHtml = "";
-            querySnapshot.forEach((doc) => {
-                const order = doc.data();
-                
-                // Konversi tanggal firebase
-                const waktuOrder = order.timestamp ? order.timestamp.toDate().toLocaleTimeString('id-ID') : 'Sedang memuat...';
+            querySnapshot.forEach((docObj) => {
+                const order = docObj.data();
+                const idOrder = docObj.id;
+                const waktuOrder = order.timestamp ? order.timestamp.toDate().toLocaleTimeString('id-ID') : 'Memuat...';
 
                 let itemsHtml = "";
                 order.items.forEach(item => {
@@ -180,22 +304,93 @@
                     `;
                 });
 
+                // Tampilkan kolom catatan jika diisi oleh pembeli
+                let catatanHtml = order.catatan && order.catatan !== "-" ? 
+                    `<div class="order-notes-box">💬 Request: "<em>${order.catatan}</em>"</div>` : '';
+
                 ordersHtml += `
                     <div class="order-card">
                         <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px; color: #f1c40f;">
-                            <span>Pesanan Baru - Jam ${waktuOrder}</span>
+                            <span>Pesanan - Jam ${waktuOrder}</span>
                             <span>Status: ${order.status}</span>
                         </div>
                         ${itemsHtml}
+                        ${catatanHtml}
                         <hr style="border: 0; border-top: 1px dashed #7f8c8d; margin: 10px 0;">
-                        <div style="text-align: right; font-weight: bold; font-size: 16px;">
+                        <div style="text-align: right; font-weight: bold; font-size: 16px; margin-bottom: 10px;">
                             Total Bayar: Rp ${order.totalPrice.toLocaleString('id-ID')}
+                        </div>
+                        <div class="action-container">
+                            <button class="btn-action btn-print" onclick="cetakStruk('${idOrder}')">🖨️ Cetak Struk</button>
+                            <button class="btn-action btn-done" onclick="selesaikanPesanan('${idOrder}')">✓ Selesaikan</button>
                         </div>
                     </div>
                 `;
             });
 
             ordersListContainer.innerHTML = ordersHtml;
+        });
+
+        // 4. Fungsi Mengubah Status Pesanan menjadi "Selesai" (Pesanan diproses)
+        window.selesaikanPesanan = async function(idOrder) {
+            try {
+                await updateDoc(doc(db, "orders", idOrder), {
+                    status: "Selesai"
+                });
+                alert("Pesanan berhasil diselesaikan dan diarsipkan!");
+            } catch (error) {
+                console.error("Gagal menyelesaikan pesanan: ", error);
+            }
+        }
+
+        // 5. Fungsi Print/Cetak Struk Kasir
+        window.cetakStruk = onSnapshot(collection(db, "orders"), (snapshot) => {
+            window.cetakStruk = function(idOrder) {
+                const targetDoc = snapshot.docs.find(d => d.id === idOrder);
+                if (!targetDoc) return;
+                
+                const orderData = targetDoc.data();
+                const waktu = orderData.timestamp ? orderData.timestamp.toDate().toLocaleString('id-ID') : '-';
+                
+                let itemLines = "";
+                orderData.items.forEach(item => {
+                    itemLines += `
+                    <div>${item.nama}</div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 5px;">
+                        <span>   ${item.jumlah} x Rp ${item.harga.toLocaleString('id-ID')}</span>
+                        <span>Rp ${(item.harga * item.jumlah).toLocaleString('id-ID')}</span>
+                    </div>`;
+                });
+
+                let catatanLine = orderData.catatan && orderData.catatan !== "-" ? `
+                <div style="border-top: 1px dashed black; padding: 5px 0; font-size: 12px;">
+                    Catatan: ${orderData.catatan}
+                </div>` : '';
+
+                // Desain kertas struk minimalis kasir
+                const printContainer = document.getElementById("printArea");
+                printContainer.innerHTML = `
+                    <div style="text-align: center; font-size: 14px; font-weight: bold;">WARUNG RASA NUSANTARA</div>
+                    <div style="text-align: center; font-size: 10px; margin-bottom: 10px;">Telp: 0812-XXXX-XXXX</div>
+                    <div style="border-bottom: 1px dashed black; padding-bottom: 5px; font-size: 11px;">
+                        Waktu  : ${waktu}<br>
+                        ID     : ${idOrder.substring(0, 8).toUpperCase()}
+                    </div>
+                    <div style="padding: 10px 0; font-size: 11px; border-bottom: 1px dashed black;">
+                        ${itemLines}
+                    </div>
+                    ${catatanLine}
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 12px; padding-top: 5px;">
+                        <span>TOTAL BAYAR</span>
+                        <span>Rp ${orderData.totalPrice.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div style="text-align: center; font-size: 10px; margin-top: 15px; border-top: 1px dashed black; padding-top: 5px;">
+                        Terima Kasih atas Kunjungan Anda!
+                    </div>
+                `;
+                
+                window.print();
+            }
         });
     </script>
 </body>
