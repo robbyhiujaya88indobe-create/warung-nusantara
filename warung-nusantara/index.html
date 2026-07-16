@@ -125,20 +125,19 @@
         <button class="btn-checkout" onclick="prosesCheckout()">Confirm Pembelian</button>
     </div>
 
-    <!-- Import SDK Firebase SDK v9 (Menggunakan CDN Terkini) -->
+    <!-- Import SDK Firebase SDK v9 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-        // GANTI INI DENGAN CONFIG FIREBASE ANDA SENDIRI
         const firebaseConfig = {
-    	    apiKey: "AIzaSyDRJtM8QEgUSa42L3dLUf1fZ6AQzKdrOqY",
-   	        authDomain: "warung-nusantara-a5ae2.firebaseapp.com",
-    	    projectId: "warung-nusantara-a5ae2",
-    	    storageBucket: "warung-nusantara-a5ae2.firebasestorage.app",
-    	    messagingSenderId: "776992995167",
-    	    appId: "1:776992995167:web:ad8850438f940bfe7828ea",
-    	    measurementId: "G-1ZYH5BJDM2"
+            apiKey: "AIzaSyDRJtM8QEgUSa42L3dLUf1fZ6AQzKdrOqY",
+            authDomain: "warung-nusantara-a5ae2.firebaseapp.com",
+            projectId: "warung-nusantara-a5ae2",
+            storageBucket: "warung-nusantara-a5ae2.firebasestorage.app",
+            messagingSenderId: "776992995167",
+            appId: "1:776992995167:web:ad8850438f940bfe7828ea",
+            measurementId: "G-1ZYH5BJDM2"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -152,7 +151,7 @@
             try {
                 const querySnapshot = await getDocs(collection(db, "menu"));
                 if (querySnapshot.empty) {
-                    menuListContainer.innerHTML = `<p style="text-align: center; color: #7f8c8d;">Menu belum diisi oleh restoran.</p>`;
+                    menuListContainer.innerHTML = `<p style="text-align: center; color: #7f8c8d;">Menu belum diisi oleh restoran. Silakan isi menu terlebih dahulu di halaman penjual.</p>`;
                     return;
                 }
                 
@@ -165,7 +164,7 @@
                                 <img class="menu-img" src="${data.img || 'https://images.unsplash.com/photo-1529042410759-befb1204b468?w=200'}" alt="${data.nama}">
                                 <div>
                                     <p class="menu-title">${data.nama}</p>
-                                    <p class="menu-price">Rp ${data.harga.toLocaleString('id-ID')}</p>
+                                    <p class="menu-price">Rp ${Number(data.harga).toLocaleString('id-ID')}</p>
                                 </div>
                             </div>
                             <button class="btn-add" onclick="tambahKeranjang('${data.nama}', ${data.harga})">+ Tambah</button>
@@ -179,10 +178,7 @@
             }
         }
 
-        // Jalankan fungsi loadMenu saat halaman siap
-        window.addEventListener("DOMContentLoaded", loadMenu);
-
-        // Fungsi manipulasi keranjang lokal
+        // Daftarkan fungsi ke scope global window agar bisa diakses oleh onclick HTML
         window.tambahKeranjang = function(namaItem, hargaItem) {
             let itemAda = keranjang.find(item => item.nama === namaItem);
             if (itemAda) {
@@ -241,7 +237,6 @@
             totalElement.innerText = totalHarga.toLocaleString('id-ID');
         }
 
-        // 2. Fungsi Kirim Pesanan ke database Firestore (Sisi Restoran akan menerima secara real-time)
         window.prosesCheckout = async function() {
             if (keranjang.length === 0) {
                 alert("Keranjang Anda masih kosong!");
@@ -253,7 +248,6 @@
                 try {
                     let totalHarga = keranjang.reduce((sum, item) => sum + (item.harga * item.jumlah), 0);
                     
-                    // Simpan data orderan ke koleksi "orders"
                     await addDoc(collection(db, "orders"), {
                         items: keranjang,
                         totalPrice: totalHarga,
@@ -270,6 +264,9 @@
                 }
             }
         }
+
+        // Jalankan fungsi loadMenu saat halaman siap
+        window.addEventListener("DOMContentLoaded", loadMenu);
     </script>
 </body>
 </html>
